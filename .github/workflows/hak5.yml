@@ -1,0 +1,28 @@
+name: Hak5 stock watch
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      URL: https://shop.hak5.org/collections/home1/products/wifi-pineapple?variant=32019576094833
+      VARIANT: "32019576094833"
+    steps:
+      - name: Check availability
+        run: |
+          avail=$(curl -fsS -A "Mozilla/5.0" "https://shop.hak5.org/products/wifi-pineapple.js" | jq -r --argjson v "$VARIANT" '.variants[] | select(.id==$v) | .available')
+          echo "available=$avail"
+          if [ "$avail" = "true" ]; then
+            curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=IN STOCK: WiFi Pineapple Mark VII+AC $URL"
+            gh workflow disable hak5.yml --repo "$GITHUB_REPOSITORY"
+          fi
