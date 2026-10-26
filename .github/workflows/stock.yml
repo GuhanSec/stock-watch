@@ -1,0 +1,26 @@
+name: Stock watch
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      URL: https://coromandelwatchco.com/products/blue-mountain-edition-gen-3-live-on-feb-4th-11-00am-ist
+    steps:
+      - name: Check availability
+        run: |
+          avail=$(curl -fsS -A "Mozilla/5.0" "$URL.js" | jq -r '.available')
+          echo "available=$avail"
+          if [ "$avail" = "true" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "IN STOCK: Blue Mountain Edition Gen 3" --body "Available now: $URL"
+            gh workflow disable stock.yml --repo "$GITHUB_REPOSITORY"
+          fi
